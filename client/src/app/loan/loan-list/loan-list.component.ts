@@ -12,6 +12,7 @@ import { Pageable } from 'src/app/core/model/page/Pageable';
 import { LoanEditComponent } from '../loan-edit/loan-edit.component';
 import { DialogConfirmationComponent } from 'src/app/core/dialog-confirmation/dialog-confirmation.component';
 import { map, zip } from 'rxjs';
+import { LoanPage } from '../model/LoanPage';
 
 @Component({
   selector: 'app-loan-list',
@@ -22,8 +23,8 @@ export class LoanListComponent implements OnInit {
 
   games: Game[];
   customers: Customer[];
-  //start_dates: Date[];
-  //end_dates: Date[];
+  loans: LoanPage;
+
   filterGame: Game;
   filterCustomer: Customer;
   filterDate: Date;
@@ -31,6 +32,7 @@ export class LoanListComponent implements OnInit {
   pageNumber: number = 0;
   pageSize: number = 5;
   totalElements: number = 0;
+  pageable: Pageable;
 
   dataSource = new MatTableDataSource<Loan>();
   displayedColumns: string[] = ['id', 'game', 'customer', 'start_date', 'end_date', 'action'];
@@ -43,24 +45,26 @@ export class LoanListComponent implements OnInit {
   ) {}
 
   ngOnInit(): void {
+    this.loadPage();
+
     //using zip to optimize resource management
     zip(
       this.gameService.getGames(),
-      this.customerService.getCustomers()
+      this.customerService.getCustomers(),
+      this.loanService.getLoans(this.pageable)
     ).pipe(
-      map(([games, customers]) => ({ games, customers }))
+      map(([games, customers, loans]) => ({ games, customers, loans }))
     ).subscribe(
-      ({ games, customers }) => {
+      ({ games, customers, loans }) => {
           this.games = games;
           this.customers = customers;
+          this.loans = loans;
       }
     );
-    
-    this.loadPage();
   }
 
   loadPage(event?: PageEvent) {
-    let pageable: Pageable = {
+    this.pageable = {
       pageNumber: this.pageNumber,
       pageSize: this.pageSize,
       sort: [{
@@ -70,11 +74,11 @@ export class LoanListComponent implements OnInit {
     }
 
     if(event != null) {
-      pageable.pageSize = event.pageSize;
-      pageable.pageNumber = event.pageIndex;
+      this.pageable.pageSize = event.pageSize;
+      this.pageable.pageNumber = event.pageIndex;
     }
 
-    this.loanService.getLoans(pageable).subscribe(data => {
+    this.loanService.getLoans(this.pageable).subscribe(data => {
       this.dataSource.data = data.content;
       this.pageNumber = data.pageable.pageNumber;
       this.pageSize = data.pageable.pageSize;
@@ -119,7 +123,16 @@ export class LoanListComponent implements OnInit {
 
   onSearch(): void {
     let gameId = this.filterGame != null ? this.filterGame.id : null;
-    let categoryId = this.filterCustomer != null ? this.filterCustomer.id : null;
-    let date = this.filterDate != null ? this.filterDate.getDate : null;
+    let customerId = this.filterCustomer != null ? this.filterCustomer.id : null;
+    let date = this.filterDate != null ? this.filterDate : null;
+
+    this.loanService.getLoans(this.pageable, gameId, customerId, date).subscribe(
+      data => {
+        this.dataSource.data = data.content;
+        this.pageNumber = data.pageable.pageNumber;
+        this.pageSize = data.pageable.pageSize;
+        this.totalElements = data.totalElements;
+      }
+    );
   }
 }

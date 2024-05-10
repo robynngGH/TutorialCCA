@@ -21,9 +21,10 @@ import org.springframework.web.util.UriComponentsBuilder;
 
 import java.util.Calendar;
 import java.util.Date;
+import java.util.HashMap;
+import java.util.Map;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.*;
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @DirtiesContext(classMode = DirtiesContext.ClassMode.BEFORE_EACH_TEST_METHOD)
@@ -50,6 +51,7 @@ public class LoanIT {
     private static final Date END_DATE = new Date(2019, Calendar.MAY, 29);
     private static final Long NEW_LOAN_ID = 8L;
     private static final Long EXISTING_LOAN_ID = 2L;
+    private static final Long EXISTING_CUSTOMER_ID = 2L;
 
     /**
      * Sets up the URL with its parameters for game, customer and date filtering
@@ -95,6 +97,30 @@ public class LoanIT {
         assertNotNull(responseEntity);
         assertEquals(TOTAL_LOANS, responseEntity.getBody().getTotalElements());
         assertEquals(elementsCount, responseEntity.getBody().getContent().size());
+    }
+
+    /**
+     * Filtering loans associated with a specific customer
+     */
+    @Test
+    public void findExistingCustomerIdShouldReturnTheirLoans() {
+
+        LoanSearchDTO searchDTO = new LoanSearchDTO();
+        searchDTO.setPageable(new PageableRequest(0, PAGE_SIZE));
+
+        Map<String, Object> params = new HashMap<>();
+        params.put(GAME_ID_PARAM, null);
+        params.put(CUSTOMER_ID_PARAM, EXISTING_CUSTOMER_ID);
+        params.put(DATE_PARAM, null);
+
+        ResponseEntity<ResponsePage<LoanDTO>> responseEntity = restTemplate.exchange(getUrlWithParams(), HttpMethod.POST, new HttpEntity<>(searchDTO), responseTypePage, params);
+
+        assertNotNull(responseEntity);
+        assertEquals(2, responseEntity.getBody().getContent().size()); //expected two results from that customer
+
+        //ensuring all returned loans belong to the specified customer
+        boolean allBelongToCustomer = responseEntity.getBody().getContent().stream().allMatch(loan -> loan.getCustomer().getId().equals(EXISTING_CUSTOMER_ID));
+        assertTrue(allBelongToCustomer);
     }
 
     /**

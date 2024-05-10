@@ -19,7 +19,7 @@
             
             <mat-form-field>
                 <mat-label>Fecha</mat-label>
-                <input matInput placeholder="Elige una fecha" [matDatepicker]="picker" name="date">
+                <input matInput placeholder="Elige una fecha" [(ngModel)]="filterDate" [matDatepicker]="picker" name="date">
                 <!--<mat-hint>DD/MM/YYYY</mat-hint>-->
                 <mat-datepicker-toggle matIconSuffix [for]="picker"></mat-datepicker-toggle>
                 <mat-datepicker #picker></mat-datepicker>

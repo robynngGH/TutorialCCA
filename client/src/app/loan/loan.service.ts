@@ -14,8 +14,8 @@ export class LoanService {
 
   constructor(private http: HttpClient) { }
 
-  getLoans(pageable: Pageable): Observable<LoanPage> {
-    return this.http.post<LoanPage>('http://localhost:8080/loan', {pageable:pageable});
+  getLoans(pageable: Pageable, gameId?: number, customerId?: number, date?: Date): Observable<LoanPage> {
+    return this.http.post<LoanPage>(this.composeFindUrl(gameId, customerId, date), {pageable:pageable});
   }
 
   saveLoan(loan: Loan): Observable<void> {
@@ -26,6 +26,33 @@ export class LoanService {
 
   deleteLoan(idLoan: number): Observable<void> {
     return this.http.delete<void>('http://localhost:8080/loan/' + idLoan);
+  }
+
+  //params in the URL to filter loans
+  private composeFindUrl(gameId?: number, customerId?: number, date?: Date) : string {
+    let params = '';
+
+    if (gameId != null)
+      params += 'idGame=' + gameId;
+
+    if (customerId != null) {
+      if (params != '')
+        params += '&';
+      params += 'idCustomer=' + customerId;
+    }
+
+    if (date != null) {
+      if (params != '')
+        params += '&';
+      params += 'date=' + date.getFullYear() + '_' + date.getMonth() + '_' + date.getDate();
+    }
+
+    let url = 'http://localhost:8080/loan';
+
+    if (params == '')
+      return url;
+    else
+      return url + '?' + params;
   }
 
 }

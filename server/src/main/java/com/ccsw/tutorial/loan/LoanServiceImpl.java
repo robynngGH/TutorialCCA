@@ -1,5 +1,6 @@
 package com.ccsw.tutorial.loan;
 
+import com.ccsw.tutorial.common.criteria.SearchCriteria;
 import com.ccsw.tutorial.customer.CustomerService;
 import com.ccsw.tutorial.game.GameService;
 import com.ccsw.tutorial.loan.model.Loan;
@@ -9,6 +10,7 @@ import jakarta.transaction.Transactional;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 
 import java.util.Date;
@@ -33,7 +35,13 @@ public class LoanServiceImpl implements LoanService {
      */
     @Override
     public Page<Loan> findPage(Long idGame, Long idCustomer, Date date, LoanSearchDTO dto) {
-        return this.loanRepository.findAll(dto.getPageable().getPageable());
+
+        LoanSpecification gameSpec = new LoanSpecification(new SearchCriteria("game.id", ":", idGame));
+        LoanSpecification customerSpec = new LoanSpecification(new SearchCriteria("customer.id", ":", idCustomer));
+        LoanSpecification dateSpec = new LoanSpecification(new SearchCriteria("date", "between", date));
+        Specification<Loan> spec = Specification.where(gameSpec).and(customerSpec);
+
+        return this.loanRepository.findAll(spec, dto.getPageable().getPageable());
     }
 
     /**
