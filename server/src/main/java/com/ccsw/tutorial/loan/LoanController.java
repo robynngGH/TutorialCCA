@@ -54,7 +54,7 @@ public class LoanController {
      */
     @Operation(summary = "Save", description = "Method that saves a new loan")
     @RequestMapping(path = "", method = RequestMethod.PUT)
-    public void save(@RequestBody LoanDTO dto) {
+    public void save(@RequestBody LoanDTO dto) throws RuntimeException {
         this.loanService.save(dto);
     }
 

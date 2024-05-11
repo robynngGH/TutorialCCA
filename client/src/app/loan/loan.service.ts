@@ -44,7 +44,7 @@ export class LoanService {
     if (date != null) {
       if (params != '')
         params += '&';
-      params += 'date=' + date.getFullYear() + '_' + date.getMonth() + '_' + date.getDate();
+      params += 'date=' + date.getFullYear() + '-' + ((date.getMonth() + 1) < 10 ? ('0' + (date.getMonth() + 1)) : (date.getMonth() + 1)) + '-' + (date.getDate() < 10 ? ('0' + date.getDate()) : date.getDate());
     }
 
     let url = 'http://localhost:8080/loan';

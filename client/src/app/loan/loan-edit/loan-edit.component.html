@@ -10,7 +10,7 @@
 
         <mat-form-field>
             <mat-label>Cliente</mat-label>
-            <mat-select disableRipple [(ngModel)]="loan.customer" name="customer" required>
+            <mat-select disableRipple [(ngModel)]="loan.customer" name="customer" required (ngModelChange)="resetErrorBooleans()">
                 <mat-option *ngFor="let customer of customers" [value]="customer">{{customer.name}}</mat-option>
             </mat-select>
             <mat-error>El cliente no puede estar vacío</mat-error>
@@ -18,7 +18,7 @@
 
         <mat-form-field>
             <mat-label>Juego</mat-label>
-            <mat-select disableRipple [(ngModel)]="loan.game" name="game" required>
+            <mat-select disableRipple [(ngModel)]="loan.game" name="game" required (ngModelChange)="resetErrorBooleans()">
                 <mat-option *ngFor="let game of games" [value]="game">{{game.title}}</mat-option>
             </mat-select>
             <mat-error>El juego no puede estar vacío</mat-error>
@@ -27,7 +27,7 @@
         <p>Fecha de préstamo</p>
         <mat-form-field>
             <mat-label>Inicio</mat-label>
-            <input matInput placeholder="Fecha de inicio" [(ngModel)]="loan.start_date" [matDatepicker]="picker1" name="start_date" required>
+            <input matInput placeholder="Fecha de inicio" [(ngModel)]="loan.start_date" [matDatepicker]="picker1" name="start_date" required (ngModelChange)="resetErrorBooleans()">
             <!--<mat-hint>DD/MM/YYYY</mat-hint>-->
             <mat-error>La fecha de inicio no puede estar vacía</mat-error>
             <mat-datepicker-toggle matIconSuffix [for]="picker1"></mat-datepicker-toggle>
@@ -36,12 +36,16 @@
         
         <mat-form-field>
             <mat-label>Devolución</mat-label>
-            <input matInput placeholder="Fecha de devolución" [(ngModel)]="loan.end_date" [matDatepicker]="picker2" name="end_date" required>
+            <input matInput placeholder="Fecha de devolución" [(ngModel)]="loan.end_date" [matDatepicker]="picker2" name="end_date" required (ngModelChange)="resetErrorBooleans()">
             <!--<mat-hint>DD/MM/YYYY</mat-hint>-->
             <mat-error>La fecha de devolución no puede estar vacía</mat-error>
             <mat-datepicker-toggle matIconSuffix [for]="picker2"></mat-datepicker-toggle>
             <mat-datepicker #picker2></mat-datepicker>
         </mat-form-field>
+        <p class="error" *ngIf="wrongEndDate">La fecha de devolución no puede ser anterior</p>
+        <p class="error" *ngIf="higherThan14">El número de días del préstamo no puede ser mayor de 14</p>
+        <p class="error" *ngIf="twoCustomersLoanGameSameDate">Este juego no está disponible para este rango de fechas</p>
+        <p class="error" *ngIf="moreThanTwoGamesForCustomerSameDate">El cliente ya tiene dos juegos reservados para estas fechas</p>
     </form>
 
     <div class="buttons">

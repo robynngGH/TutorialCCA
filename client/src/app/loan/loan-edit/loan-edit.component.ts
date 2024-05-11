@@ -18,6 +18,12 @@ export class LoanEditComponent implements OnInit{
   customers: Customer[];
   games: Game[];
 
+  //error booleans
+  wrongEndDate: boolean = false;
+  higherThan14: boolean = false;
+  twoCustomersLoanGameSameDate: boolean = false;
+  moreThanTwoGamesForCustomerSameDate: boolean = false;
+
   constructor(
     public dialogRef: MatDialogRef<LoanEditComponent>,
     @Inject(MAT_DIALOG_DATA) public data: any,
@@ -53,10 +59,35 @@ export class LoanEditComponent implements OnInit{
   }
 
   onSave() {
+    if(!this.loan.customer || !this.loan.game.title || !this.loan.start_date || !this.loan.end_date) {
+      this.resetErrorBooleans(); //avoid showing other errors
+      return; //avoids going through the rest of the function
+    }
+
     this.loanService.saveLoan(this.loan).subscribe(result => {
       this.dialogRef.close();
+    }, error => {
+      this.resetErrorBooleans();
+      if (error.status == 406)
+        this.wrongEndDate = true;
+      else if (error.status == 405)
+        this.higherThan14 = true;
+      else if (error.status == 409)
+        this.twoCustomersLoanGameSameDate = true;
+      else if (error.status == 412)
+        this.moreThanTwoGamesForCustomerSameDate = true;
     });
   }
 
-  onClose() { this.dialogRef.close() }
+  onClose() {
+    this.resetErrorBooleans();
+    this.dialogRef.close();
+  }
+
+  resetErrorBooleans() {
+    this.wrongEndDate = false;
+    this.higherThan14 = false;
+    this.moreThanTwoGamesForCustomerSameDate = false;
+    this.twoCustomersLoanGameSameDate = false;
+  }
 }

@@ -21,12 +21,12 @@ public class LoanSpecification implements Specification<Loan> {
         if (criteria.getOperation().equalsIgnoreCase(":") && criteria.getValue() != null) {
             Path<String> path = getPath(root);
             return builder.equal(path, criteria.getValue()); //this time only builder.equal is needed, since it's numbers and dates
-        } else if (criteria.getOperation().equalsIgnoreCase("between") && criteria.getValue() instanceof Date[]) {
+        } else if (criteria.getOperation().equals("<=") && criteria.getValue() instanceof Date) {
             Path<Date> path = getDatePath(root);
-            Date[] dates = (Date[]) criteria.getValue();
-            Date startDate = dates[0];
-            Date endDate = dates[1];
-            return builder.between(path, startDate, endDate);
+            return builder.lessThanOrEqualTo(path, (Date) criteria.getValue());
+        } else if (criteria.getOperation().equals(">=") && criteria.getValue() instanceof Date) {
+            Path<Date> path = getDatePath(root);
+            return builder.greaterThanOrEqualTo(path, (Date) criteria.getValue());
         }
         return null;
     }

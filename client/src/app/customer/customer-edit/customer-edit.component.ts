@@ -13,7 +13,7 @@ import { MatInput } from '@angular/material/input';
 })
 export class CustomerEditComponent implements OnInit{
   customer: Customer;
-  unique: boolean = false; //checks that the name is unique
+  unique: boolean = true; //checks that the name is unique
   //@ViewChild("nameField")
   //nameField!: MatFormFieldControl<MatInput>;
 
@@ -54,6 +54,8 @@ export class CustomerEditComponent implements OnInit{
   }
 
   onClose() {
+    if (!this.unique)
+      this.unique = true;
     this.dialogRef.close();
   }
 }
