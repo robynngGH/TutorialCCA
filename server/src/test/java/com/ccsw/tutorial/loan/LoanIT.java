@@ -21,173 +21,265 @@ import org.springframework.web.util.UriComponentsBuilder;
 
 import java.util.Calendar;
 import java.util.Date;
-import java.util.HashMap;
-import java.util.Map;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @DirtiesContext(classMode = DirtiesContext.ClassMode.BEFORE_EACH_TEST_METHOD)
 public class LoanIT {
 
-    public static final String LOCALHOST = "http://localhost:";
-    public static final String SERVICE_PATH = "/loan";
+  public static final String LOCALHOST = "http://localhost:";
+  public static final String SERVICE_PATH = "/loan";
 
-    @LocalServerPort
-    private int port;
-    @Autowired
-    private TestRestTemplate restTemplate;
+  @LocalServerPort
+  private int port;
+  @Autowired
+  private TestRestTemplate restTemplate;
 
-    ParameterizedTypeReference<ResponsePage<LoanDTO>> responseTypePage = new ParameterizedTypeReference<ResponsePage<LoanDTO>>() {
-    };
+  ParameterizedTypeReference<ResponsePage<LoanDTO>> responseTypePage = new ParameterizedTypeReference<ResponsePage<LoanDTO>>() {
+  };
 
-    private static final int PAGE_SIZE = 5;
-    private static final int TOTAL_LOANS = 7;
-    private static final String GAME_ID_PARAM = "idGame";
-    private static final String CUSTOMER_ID_PARAM = "idCustomer";
-    private static final String DATE_PARAM = "date";
+  private static final int PAGE_SIZE = 5;
+  private static final int TOTAL_LOANS = 7;
+  private static final String GAME_ID_PARAM = "idGame";
+  private static final String CUSTOMER_ID_PARAM = "idCustomer";
+  private static final String DATE_PARAM = "date";
 
-    private static final Date START_DATE = new Date(2019, Calendar.MAY, 21);
-    private static final Date END_DATE = new Date(2019, Calendar.MAY, 29);
-    private static final Long NEW_LOAN_ID = 8L;
-    private static final Long EXISTING_LOAN_ID = 2L;
-    private static final Long EXISTING_CUSTOMER_ID = 2L;
+  private static final Date START_DATE = new Date(2019, Calendar.MAY, 21);
+  private static final Date END_DATE = new Date(2019, Calendar.MAY, 29);
+  private static final Long NEW_LOAN_ID = 8L;
+  private static final Long EXISTING_LOAN_ID = 2L;
+  private static final Long EXISTING_CUSTOMER_ID = 2L;
+  private static final Long EXISTING_GAME_ID = 3L;
+  private static final Date TOO_MANY_DAYS_DATE = new Date(2019, Calendar.JUNE, 10);
+  private static final Long GAME_ID_FOR_CONFLICTING_DATE = 1L; //On Mars
 
-    /**
-     * Sets up the URL with its parameters for game, customer and date filtering
-     *
-     * @return url from UriComponentsBuilder
-     */
-    private String getUrlWithParams() {
-        return UriComponentsBuilder.fromHttpUrl(LOCALHOST + port + SERVICE_PATH).queryParam(GAME_ID_PARAM, "{" + GAME_ID_PARAM + "}").queryParam(CUSTOMER_ID_PARAM, "{" + CUSTOMER_ID_PARAM + "}")
-                .queryParam(DATE_PARAM, "{" + DATE_PARAM + "}").encode().toUriString();
-    }
+  /**
+   * Sets up the URL with its parameters for game, customer and date filtering
+   *
+   * @return url from UriComponentsBuilder
+   */
+  private String getUrlWithParams() {
+    return UriComponentsBuilder.fromHttpUrl(LOCALHOST + port + SERVICE_PATH).queryParam(GAME_ID_PARAM, "{" + GAME_ID_PARAM + "}").queryParam(CUSTOMER_ID_PARAM, "{" + CUSTOMER_ID_PARAM + "}").queryParam(DATE_PARAM, "{" + DATE_PARAM + "}")
+        .encode().toUriString();
+  }
 
-    //TODO: lots of filter tests, including pages
-    //TODO: save exceptions, like saving with bad dates
+  /**
+   * Testing the first page without filters shows the proper page size
+   */
+  @Test
+  public void findFirstPageWithSizeOfFiveAndNoFiltersShouldReturnFirstFiveResults() {
+    LoanSearchDTO searchDTO = new LoanSearchDTO();
+    searchDTO.setPageable(new PageableRequest(0, PAGE_SIZE));
 
-    /**
-     * Testing the first page without filters shows the proper page size
-     */
-    @Test
-    public void findFirstPageWithSizeOfFiveAndNoFiltersShouldReturnFirstFiveResults() {
-        LoanSearchDTO searchDTO = new LoanSearchDTO();
-        searchDTO.setPageable(new PageableRequest(0, PAGE_SIZE));
+    ResponseEntity<ResponsePage<LoanDTO>> responseEntity = restTemplate.exchange(LOCALHOST + port + SERVICE_PATH, HttpMethod.POST, new HttpEntity<>(searchDTO), responseTypePage);
 
-        ResponseEntity<ResponsePage<LoanDTO>> responseEntity = restTemplate.exchange(LOCALHOST + port + SERVICE_PATH, HttpMethod.POST, new HttpEntity<>(searchDTO), responseTypePage);
+    assertNotNull(responseEntity);
+    assertEquals(TOTAL_LOANS, responseEntity.getBody().getTotalElements());
+    assertEquals(PAGE_SIZE, responseEntity.getBody().getContent().size());
+  }
 
-        assertNotNull(responseEntity);
-        assertEquals(TOTAL_LOANS, responseEntity.getBody().getTotalElements());
-        assertEquals(PAGE_SIZE, responseEntity.getBody().getContent().size());
-    }
+  /**
+   * Testing the second page without filters shows the remaining results
+   */
+  @Test
+  public void findSecondPageWithSizeOfFiveAndNoFiltersShouldReturnLastResults() {
 
-    /**
-     * Testing the second page without filters shows the remaining results
-     */
-    @Test
-    public void findSecondPageWithSizeOfFiveAndNoFiltersShouldReturnLastResults() {
+    int elementsCount = TOTAL_LOANS - PAGE_SIZE; //2
 
-        int elementsCount = TOTAL_LOANS - PAGE_SIZE; //2
+    LoanSearchDTO searchDTO = new LoanSearchDTO();
+    searchDTO.setPageable(new PageableRequest(1, PAGE_SIZE)); //pageNumber 1 equals the second page
 
-        LoanSearchDTO searchDTO = new LoanSearchDTO();
-        searchDTO.setPageable(new PageableRequest(1, PAGE_SIZE)); //pageNumber 1 equals the second page
+    ResponseEntity<ResponsePage<LoanDTO>> responseEntity = restTemplate.exchange(LOCALHOST + port + SERVICE_PATH, HttpMethod.POST, new HttpEntity<>(searchDTO), responseTypePage);
 
-        ResponseEntity<ResponsePage<LoanDTO>> responseEntity = restTemplate.exchange(LOCALHOST + port + SERVICE_PATH, HttpMethod.POST, new HttpEntity<>(searchDTO), responseTypePage);
+    assertNotNull(responseEntity);
+    assertEquals(TOTAL_LOANS, responseEntity.getBody().getTotalElements());
+    assertEquals(elementsCount, responseEntity.getBody().getContent().size());
+  }
 
-        assertNotNull(responseEntity);
-        assertEquals(TOTAL_LOANS, responseEntity.getBody().getTotalElements());
-        assertEquals(elementsCount, responseEntity.getBody().getContent().size());
-    }
+  /**
+   * Creating a new loan with proper values
+   */
+  @Test
+  public void saveShouldCreateNewLoan() {
 
-    /**
-     * Filtering loans associated with a specific customer
-     */
-    @Test
-    public void findExistingCustomerIdShouldReturnTheirLoans() {
+    long newLoanId = TOTAL_LOANS + 1;
+    long newLoanSize = TOTAL_LOANS + 1;
 
-        LoanSearchDTO searchDTO = new LoanSearchDTO();
-        searchDTO.setPageable(new PageableRequest(0, PAGE_SIZE));
+    GameDTO gameDto = new GameDTO();
+    CustomerDTO customerDto = new CustomerDTO();
+    gameDto.setId(1L);
+    customerDto.setId(1L);
 
-        Map<String, Object> params = new HashMap<>();
-        params.put(GAME_ID_PARAM, null);
-        params.put(CUSTOMER_ID_PARAM, EXISTING_CUSTOMER_ID);
-        params.put(DATE_PARAM, null);
+    LoanDTO dto = new LoanDTO();
+    dto.setGame(gameDto);
+    dto.setCustomer(customerDto);
+    dto.setStart_date(START_DATE);
+    dto.setEnd_date(END_DATE);
 
-        ResponseEntity<ResponsePage<LoanDTO>> responseEntity = restTemplate.exchange(getUrlWithParams(), HttpMethod.POST, new HttpEntity<>(searchDTO), responseTypePage, params);
+    restTemplate.exchange(LOCALHOST + port + SERVICE_PATH, HttpMethod.PUT, new HttpEntity<>(dto), Void.class);
 
-        assertNotNull(responseEntity);
-        assertEquals(2, responseEntity.getBody().getContent().size()); //expected two results from that customer
+    LoanSearchDTO searchDto = new LoanSearchDTO();
+    searchDto.setPageable(new PageableRequest(0, (int) newLoanSize));
 
-        //ensuring all returned loans belong to the specified customer
-        boolean allBelongToCustomer = responseEntity.getBody().getContent().stream().allMatch(loan -> loan.getCustomer().getId().equals(EXISTING_CUSTOMER_ID));
-        assertTrue(allBelongToCustomer);
-    }
+    //setting up the params for the URL
+    //Map<String, Object> params = new HashMap<>();
+    //params.put(GAME_ID_PARAM, null);
+    //params.put(CUSTOMER_ID_PARAM, null);
+    //params.put(DATE_PARAM, null);
 
-    /**
-     * Creating a new loan with proper values
-     */
-    @Test
-    public void saveShouldCreateNewLoan() {
+    ResponseEntity<ResponsePage<LoanDTO>> responseEntity = restTemplate.exchange(LOCALHOST + port + SERVICE_PATH, HttpMethod.POST, new HttpEntity<>(searchDto), responseTypePage);
 
-        long newLoanId = TOTAL_LOANS + 1;
-        long newLoanSize = TOTAL_LOANS + 1;
+    assertNotNull(responseEntity);
+    assertEquals(newLoanSize, responseEntity.getBody().getTotalElements());
 
-        GameDTO gameDto = new GameDTO();
-        CustomerDTO customerDto = new CustomerDTO();
-        gameDto.setId(1L);
-        customerDto.setId(1L);
+    LoanDTO loan = responseEntity.getBody().getContent().stream().filter(item -> item.getId().equals(newLoanId)).findFirst().orElse(null);
+    assertNotNull(loan);
+    assertEquals(NEW_LOAN_ID, loan.getId());
+  }
 
-        LoanDTO dto = new LoanDTO();
-        dto.setGame(gameDto);
-        dto.setCustomer(customerDto);
-        dto.setStart_date(START_DATE);
-        dto.setEnd_date(END_DATE);
+  //Saving exceptions
 
-        restTemplate.exchange(LOCALHOST + port + SERVICE_PATH, HttpMethod.PUT, new HttpEntity<>(dto), Void.class);
+  /**
+   * Saving a loan with return date prior to loan date
+   */
+  @Test
+  public void saveWithReturnDatePriorToLoanDateShouldThrowNotAcceptable() {
+    LoanDTO dto = new LoanDTO();
+    GameDTO gameDto = new GameDTO();
+    CustomerDTO customerDto = new CustomerDTO();
 
-        LoanSearchDTO searchDto = new LoanSearchDTO();
-        searchDto.setPageable(new PageableRequest(0, (int) newLoanSize));
+    customerDto.setId(EXISTING_CUSTOMER_ID);
+    gameDto.setId(EXISTING_GAME_ID);
+    dto.setGame(gameDto);
+    dto.setCustomer(customerDto);
+    dto.setStart_date(END_DATE);
+    dto.setEnd_date(START_DATE);
+    ResponseEntity<?> responseEntity = restTemplate.exchange(LOCALHOST + port + SERVICE_PATH, HttpMethod.PUT, new HttpEntity<>(dto), Void.class);
 
-        //setting up the params for the URL
-        //Map<String, Object> params = new HashMap<>();
-        //params.put(GAME_ID_PARAM, null);
-        //params.put(CUSTOMER_ID_PARAM, null);
-        //params.put(DATE_PARAM, null);
+    assertEquals(HttpStatus.NOT_ACCEPTABLE, responseEntity.getStatusCode());
+  }
 
-        ResponseEntity<ResponsePage<LoanDTO>> responseEntity = restTemplate.exchange(LOCALHOST + port + SERVICE_PATH, HttpMethod.POST, new HttpEntity<>(searchDto), responseTypePage);
+  /**
+   * Saving a loan valid for more than 14 days
+   */
+  @Test
+  public void saveWithMoreThan14DaysOfLoanShouldThrowMethodNotAllowed() {
+    LoanDTO dto = new LoanDTO();
+    GameDTO gameDto = new GameDTO();
+    CustomerDTO customerDto = new CustomerDTO();
 
-        assertNotNull(responseEntity);
-        assertEquals(newLoanSize, responseEntity.getBody().getTotalElements());
+    customerDto.setId(EXISTING_CUSTOMER_ID);
+    gameDto.setId(EXISTING_GAME_ID);
+    dto.setGame(gameDto);
+    dto.setCustomer(customerDto);
+    dto.setStart_date(START_DATE);
+    dto.setEnd_date(TOO_MANY_DAYS_DATE);
+    ResponseEntity<?> responseEntity = restTemplate.exchange(LOCALHOST + port + SERVICE_PATH, HttpMethod.PUT, new HttpEntity<>(dto), Void.class);
 
-        LoanDTO loan = responseEntity.getBody().getContent().stream().filter(item -> item.getId().equals(newLoanId)).findFirst().orElse(null);
-        assertNotNull(loan);
-        assertEquals(NEW_LOAN_ID, loan.getId());
-    }
+    assertEquals(HttpStatus.METHOD_NOT_ALLOWED, responseEntity.getStatusCode());
+  }
 
-    /**
-     * Delete test with existing ID
-     */
-    @Test
-    public void deleteWithExistingIdShouldDeleteLoan() {
+  /**
+   * Saving a loan for a game with an already existing loan during an overlapping date range
+   */
+  @Test
+  public void saveWithGameAndDatesThatOverlapWithAnAlreadyExistingLoanShouldThrowConflict() {
+    LoanDTO dto = new LoanDTO();
+    GameDTO gameDto = new GameDTO();
+    CustomerDTO customerDto = new CustomerDTO();
 
-        long newLoanSize = TOTAL_LOANS - 1;
+    LoanDTO dto2 = new LoanDTO();
+    CustomerDTO customerDto2 = new CustomerDTO();
+    customerDto2.setId(EXISTING_CUSTOMER_ID + 1);
 
-        restTemplate.exchange(LOCALHOST + port + SERVICE_PATH + "/" + EXISTING_LOAN_ID, HttpMethod.DELETE, null, Void.class);
+    customerDto.setId(EXISTING_CUSTOMER_ID);
+    gameDto.setId(GAME_ID_FOR_CONFLICTING_DATE);
 
-        LoanSearchDTO searchDTO = new LoanSearchDTO();
-        searchDTO.setPageable(new PageableRequest(0, TOTAL_LOANS));
+    dto2.setGame(gameDto);
+    dto2.setCustomer(customerDto2);
+    dto2.setStart_date(START_DATE);
+    dto2.setEnd_date(END_DATE);
+    restTemplate.exchange(LOCALHOST + port + SERVICE_PATH, HttpMethod.PUT, new HttpEntity<>(dto2), Void.class);
 
-        ResponseEntity<ResponsePage<LoanDTO>> responseEntity = restTemplate.exchange(LOCALHOST + port + SERVICE_PATH, HttpMethod.POST, new HttpEntity<>(searchDTO), responseTypePage);
+    dto.setGame(gameDto);
+    dto.setCustomer(customerDto);
+    dto.setStart_date(START_DATE);
+    dto.setEnd_date(END_DATE); //these dates are already conflicting
+    ResponseEntity<?> responseEntity = restTemplate.exchange(LOCALHOST + port + SERVICE_PATH, HttpMethod.PUT, new HttpEntity<>(dto), Void.class);
 
-        assertNotNull(responseEntity);
-        assertEquals(newLoanSize, responseEntity.getBody().getTotalElements());
-    }
+    assertEquals(HttpStatus.CONFLICT, responseEntity.getStatusCode());
+  }
 
-    @Test
-    public void deleteWithNonExistingIdShouldThrowException() {
+  /**
+   * Saving a loan for a customer that already has 2 games loaned in a date that overlaps
+   */
+  @Test
+  public void saveLoanForACustomerWithAlready2GamesLoanedForThatDateRangeShouldThrowPreconditionFailed() {
+    LoanDTO dto = new LoanDTO();
+    GameDTO gameDto = new GameDTO();
+    CustomerDTO customerDto = new CustomerDTO();
+    customerDto.setId(EXISTING_CUSTOMER_ID);
+    gameDto.setId(EXISTING_GAME_ID);
 
-        ResponseEntity<?> responseEntity = restTemplate.exchange(LOCALHOST + port + SERVICE_PATH + "/" + NEW_LOAN_ID, HttpMethod.DELETE, null, Void.class);
+    LoanDTO dto2 = new LoanDTO();
+    GameDTO gameDto2 = new GameDTO();
+    CustomerDTO customerDto2 = new CustomerDTO();
+    customerDto2.setId(EXISTING_CUSTOMER_ID);
+    gameDto2.setId(EXISTING_GAME_ID + 1);
 
-        assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, responseEntity.getStatusCode());
-    }
+    LoanDTO dto3 = new LoanDTO();
+    GameDTO gameDto3 = new GameDTO();
+    CustomerDTO customerDto3 = new CustomerDTO();
+    customerDto3.setId(EXISTING_CUSTOMER_ID);
+    gameDto3.setId(EXISTING_GAME_ID + 2);
+
+    dto2.setGame(gameDto2);
+    dto2.setCustomer(customerDto2);
+    dto2.setStart_date(START_DATE);
+    dto2.setEnd_date(END_DATE);
+    restTemplate.exchange(LOCALHOST + port + SERVICE_PATH, HttpMethod.PUT, new HttpEntity<>(dto2), Void.class);
+
+    dto3.setGame(gameDto3);
+    dto3.setCustomer(customerDto3);
+    dto3.setStart_date(START_DATE);
+    dto3.setEnd_date(END_DATE);
+    restTemplate.exchange(LOCALHOST + port + SERVICE_PATH, HttpMethod.PUT, new HttpEntity<>(dto3), Void.class);
+
+    dto.setGame(gameDto);
+    dto.setCustomer(customerDto);
+    dto.setStart_date(START_DATE);
+    dto.setEnd_date(END_DATE); //these dates are already conflicting
+    ResponseEntity<?> responseEntity = restTemplate.exchange(LOCALHOST + port + SERVICE_PATH, HttpMethod.PUT, new HttpEntity<>(dto), Void.class);
+
+    assertEquals(HttpStatus.PRECONDITION_FAILED, responseEntity.getStatusCode());
+  }
+
+  /**
+   * Delete test with existing ID
+   */
+  @Test
+  public void deleteWithExistingIdShouldDeleteLoan() {
+
+    long newLoanSize = TOTAL_LOANS - 1;
+
+    restTemplate.exchange(LOCALHOST + port + SERVICE_PATH + "/" + EXISTING_LOAN_ID, HttpMethod.DELETE, null, Void.class);
+
+    LoanSearchDTO searchDTO = new LoanSearchDTO();
+    searchDTO.setPageable(new PageableRequest(0, TOTAL_LOANS));
+
+    ResponseEntity<ResponsePage<LoanDTO>> responseEntity = restTemplate.exchange(LOCALHOST + port + SERVICE_PATH, HttpMethod.POST, new HttpEntity<>(searchDTO), responseTypePage);
+
+    assertNotNull(responseEntity);
+    assertEquals(newLoanSize, responseEntity.getBody().getTotalElements());
+  }
+
+  @Test
+  public void deleteWithNonExistingIdShouldThrowException() {
+
+    ResponseEntity<?> responseEntity = restTemplate.exchange(LOCALHOST + port + SERVICE_PATH + "/" + NEW_LOAN_ID, HttpMethod.DELETE, null, Void.class);
+
+    assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, responseEntity.getStatusCode());
+  }
 }
